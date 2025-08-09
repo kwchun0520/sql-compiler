@@ -1,29 +1,66 @@
-# React + Vite
+# SQL Compiler for DataForm (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A small React app that normalizes and formats SQL for DataForm-like workflows. It provides a 3-column layout: input, transform action, and compiled output.
 
-Currently, two official plugins are available:
+## Features
+- Three-column layout: Reference SQL | Transform | Compiled SQL
+- One-click Transform:
+  - Whitespace cleanup and token-safe capitalization
+  - Optional ${ref({ database, schema, name })} -> project.schema.name replacement
+  - Data type capitalization (standalone tokens only)
+  - Pretty formatting via sql-formatter
+- Dark/Light mode toggle (top-right) that sets html[data-theme]
+- Read-only output areas with monospace styling
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Tech Stack
+- React + Vite
+- sql-formatter
+- MUI Switch (for the dark mode toggle)
+- Plain CSS (CSS Grid for layout)
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-
-
-
-
-## SQL Compiler for DataForm
-This project is a SQL compiler for DataForm, which allows you to write SQL code that can be compiled into a format suitable for execution in various data processing environments.
-It provides a set of tools and utilities to parse, analyze, and transform SQL code, making it easier to work with complex SQL queries and data transformations.
-
-## Running the Project in Development Mode
-To run the project in development mode, you can use the following command:
-
+## Quick Start
 ```bash
+# Install dependencies
 npm install
+
+# Start dev server with HMR
 npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build locally
+npm run preview
 ```
 
-This will start the development server and allow you to work on the project with hot module replacement (HMR) enabled.
+Open http://localhost:5173 in your browser (default Vite port).
+
+## Usage
+- Left panel: paste or type your SQL (ReferenceSqlArea)
+- Middle panel: click Transform to normalize and format
+- Right panel: view the compiled/pretty SQL (read-only)
+- Toggle Dark mode using the switch in the top-right corner
+
+## How It Works (Transform)
+- Normalizes spacing and punctuation
+- Capitalizes only standalone keywords and data types (not substrings)
+- Optionally converts ${ref({ database: "...", schema: "...", name: "..." })} to project.schema.name
+  - Missing database falls back to a default project
+- Formats with sql-formatter for readability
+
+## Configuration
+- Default project for ref replacement: change the defaultProject argument in Transform.jsx’s replaceRefObjectPatterns if needed.
+- Column widths: edit grid-template-columns in src/styles/App.css (.three-col-grid).
+
+## Troubleshooting
+- Blank page: ensure index.html contains a root element:
+  ```html
+  <div id="root"></div>
+  ```
+- Dark mode not applying: the app sets html[data-theme] via useEffect. Verify your CSS uses CSS variables tied to data-theme (see src/styles/index.css and src/styles/App.css).
+- Formatting issues: sql-formatter supports multiple dialects. Adjust the language option in Transform.jsx if your SQL dialect differs.
+
+## Scripts
+- dev: start Vite dev server
+- build: production build
+- preview: preview the build locally

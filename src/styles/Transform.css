@@ -1,0 +1,26 @@
+.transform {
+  display: flex;
+  justify-content: center;   /* horizontal center */
+  align-items: center;       /* vertical center */
+  min-height: 60vh;          /* match the textarea height */
+}
+
+.transform-btn {
+  background-color: #28a745;
+  color: #fff;
+  border: 1px solid #28a745;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  align-items: center;
+}
+
+.transform-btn:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
+
+.transform-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.35);
+}

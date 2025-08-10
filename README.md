@@ -6,7 +6,8 @@ A small React app that normalizes and formats SQL for DataForm-like workflows. I
 - Three-column layout: Reference SQL | Transform | Compiled SQL
 - One-click Transform:
   - Whitespace cleanup and token-safe capitalization
-  - Optional ${ref({ database, schema, name })} -> project.schema.name replacement
+  - Optional ${ref({ database, schema, name })} -> database.schema.name replacement for Google DataForm compatibility
+    - Missing database falls back to a default project 
   - Data type capitalization (standalone tokens only)
   - Pretty formatting via sql-formatter
 - Dark/Light mode toggle (top-right) that sets html[data-theme]
@@ -37,14 +38,14 @@ Open http://localhost:5173 in your browser (default Vite port).
 
 ## Usage
 - Left panel: paste or type your SQL (ReferenceSqlArea)
-- Middle panel: click Transform to normalize and format
-- Right panel: view the compiled/pretty SQL (read-only)
+- Middle panel: click Transform to normalize and format, and the default project configuration
+- Right panel: view the compiled/pretty SQL (CompiledSqlArea)
 - Toggle Dark mode using the switch in the top-right corner
 
 ## How It Works (Transform)
 - Normalizes spacing and punctuation
 - Capitalizes only standalone keywords and data types (not substrings)
-- Optionally converts ${ref({ database: "...", schema: "...", name: "..." })} to project.schema.name
+- Optionally converts ${ref({ database: "...", schema: "...", name: "..." })} to database.schema.name for Google DataForm compatibility
   - Missing database falls back to a default project
 - Formats with sql-formatter for readability
 
@@ -64,3 +65,30 @@ Open http://localhost:5173 in your browser (default Vite port).
 - dev: start Vite dev server
 - build: production build
 - preview: preview the build locally
+
+## Docker
+This repo includes a production-ready container setup:
+- `Dockerfile`: multi-stage build (Node to build, Nginx to serve static files)
+- `nginx.conf`: configures SPA routing (serves `index.html` for unknown routes)
+- `docker-compose.yaml`: convenience for build/run with port mapping
+
+### Build and run with Docker
+```bash
+docker build -t sql-compiler .
+docker run --rm -p 5173:80 sql-compiler
+```
+Then open http://localhost:5173
+
+### Using Docker Compose
+```bash
+docker compose up --build
+```
+By default this maps container port 80 to host port 5173, matching the dev port for convenience. The Nginx config uses:
+
+```
+location / {
+  try_files $uri $uri/ /index.html;
+}
+```
+
+This enables client-side routing (React Router) to work when refreshing or deep-linking.

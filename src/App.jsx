@@ -25,19 +25,24 @@ function App() {
   return (
     <div className={`App ${darkMode ? 'theme-dark' : 'theme-light'}`}>
       {/* <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} /> */}
-      <ControlSwitch darkMode={darkMode} onToggle={() => setDarkMode(v => !v)} />
       <div className="content">
         <Header />
+        <ControlSwitch darkMode={darkMode} onToggle={() => setDarkMode(v => !v)} />
         <div className="three-col-grid">
           <div>
             <ReferenceSqlArea value={referencedSql} onChange={setReferencedSql} />
           </div>
           <div>
-            <Transform inputSql={referencedSql} onTransformed={setCompiledSql} />
-            {/* <Transform inputSql={compiledSql} onTransformed={setCompiledSql} /> */}
+            {/* Pass compiledSql in, and a handler to push reverted SQL back to the left */}
+            <Transform
+              referencedSql={referencedSql}
+              compiledSql={compiledSql}
+              onCompiled={setCompiledSql}
+              onReverted={setReferencedSql}
+            />
           </div>
           <div>
-            <CompileSqlArea value={compiledSql} />
+            <CompileSqlArea value={compiledSql} onChange={setCompiledSql} />
           </div>
         </div>
         <Footer />

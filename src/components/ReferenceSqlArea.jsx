@@ -7,7 +7,7 @@ function ReferenceSqlArea({ value, onChange }) {
 
     return (
         <div>
-            <h2>Input</h2>
+            <h2>Before Compile</h2>
             <textarea
                 id="referenced-sql"
                 name="content"

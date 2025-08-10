@@ -5,7 +5,6 @@
   text-align: center;
 }
 
-
 .three-col-grid {
   display: grid;
   grid-template-columns: 5fr 1fr 5fr;

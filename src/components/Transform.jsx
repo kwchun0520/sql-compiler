@@ -1,15 +1,12 @@
 import '../styles/Transform.css';
 import { format } from 'sql-formatter';
+import { useState } from 'react';
 
-function Transform({ inputSql = '', onTransformed }) {
-    function transformSql() {
-        const sql = inputSql ?? '';
-        if (!sql.trim()) {
-        onTransformed?.('');
-        return;
-        }
+function Transform({ referencedSql = '', compiledSql = '', onCompiled, onReverted }) {
+    // Allow user to override the default project used in ref replacements
+    const [defaultProject, setDefaultProject] = useState('defaultproject');
 
-        const normalized = (function normalizeSql(s) {
+    function normalizeSql(s) {
         let r = s
             .replace(/\s+/g, ' ')
             .replace(/\s*,\s*/g, ', ')
@@ -19,9 +16,8 @@ function Transform({ inputSql = '', onTransformed }) {
             .replace(/\s*:\s*/g, ': ')
             .trim();
 
-        // Replace token only when it’s standalone (preceded by start/space/(,/= and followed by end/space/)/, /; /=)
         const boundaryReplace = (str, token, replacement) => {
-            const tokenPattern = token.replace(/\s+/g, '\\s+'); // tolerate single spaces inside token
+            const tokenPattern = token.replace(/\s+/g, '\\s+');
             const re = new RegExp(`(^|[\\s(,=])${tokenPattern}(?=($|[\\s),;=]))`, 'gi');
             return str.replace(re, (_, p1) => `${p1}${replacement}`);
         };
@@ -55,37 +51,65 @@ function Transform({ inputSql = '', onTransformed }) {
         for (const t of TYPES_SINGLE) r = boundaryReplace(r, t, t.toUpperCase());
 
         return r;
-        })(sql); 
+    };
 
-        // ${ref({ database: "...", schema: "...", name: "..." })} -> project.schema.name
-        function replaceRefObjectPatterns(input, defaultProject = 'defaultproject') {
-        // Capture the object body inside ${ref({ ... })}
-            const outer = /\$\{ref\(\s*\{\s*([^}]*)\}\s*\)\}/gi;
+    // ${ref({ database: "...", schema: "...", name: "..." })} -> project.schema.name
+    function replaceRefObjectPatterns(input, defaultProject = 'defaultproject') {
+        const outer = /\$\{ref\(\s*\{\s*([^}]*)\}\s*\)\}/gi;
 
-            return input.replace(outer, (full, objBody) => {
-                // Extract database|schema|name regardless of order and quoting
-                const kvRe = /\b(database|schema|name)\b\s*:\s*(?:"([^"]+)"|'([^']+)'|`([^`]+)`|([A-Za-z_][\w$.-]*))/gi;
+        return input.replace(outer, (full, objBody) => {
+            const kvRe = /\b(database|schema|name)\b\s*:\s*(?:"([^"]+)"|'([^']+)'|`([^`]+)`|([A-Za-z_][\w$.-]*))/gi;
 
-                let db, sch, nm, m;
-                while ((m = kvRe.exec(objBody)) !== null) {
+            let db, sch, nm, m;
+            while ((m = kvRe.exec(objBody)) !== null) {
                 const key = m[1].toLowerCase();
                 const val = (m[2] ?? m[3] ?? m[4] ?? m[5] ?? '').trim();
                 if (key === 'database') db = val;
                 else if (key === 'schema') sch = val;
                 else if (key === 'name') nm = val;
-                }
+            }
 
-                // Require schema and name; use default for missing database
-                if (!sch || !nm) return full;
-                const project = db && db.length ? db : defaultProject;
-                return `${project}.${sch}.${nm}`;
-            });
-        };
-        const normalizedCompile = replaceRefObjectPatterns(normalized, 'defaultproject');
+            if (!sch || !nm) return full;
+            const project = db && db.length ? db : defaultProject;
+            return `${project}.${sch}.${nm}`;
+        });
+    };
 
-        let formatted = normalizedCompile;
+    // project.schema.name -> ${ref({...})}
+    function revertRefObjectPatterns(input, defaultProject = 'defaultproject') {
+        const dotPattern = /\b([A-Za-z_][\w.-]*)\.([A-Za-z_][\w.-]*)\.([A-Za-z_][\w.-]*)\b/g;
+
+        return input.replace(dotPattern, (full, project, schema, name) => {
+            if (project === defaultProject) {
+                return `\${ref({schema:"${schema}", name:"${name}"})}`;
+            }
+            return `\${ref({database:"${project}", schema:"${schema}", name:"${name}"})}`;
+        });
+    };
+
+    // Remove Dataform-like config blocks: config { ... }
+    function stripConfigBlocks(input) {
+        if (!input) return input;
+        // Prefer matches that start at line starts, then a broader fallback
+        let out = input.replace(/(^|\n)\s*config\s*\{[\s\S]*?\}\s*(?=\n|$)/gi, '$1');
+        out = out.replace(/\bconfig\s*\{[\s\S]*?\}\s*;?/gi, '');
+        return out.trim();
+    }
+
+    function compileSql() {
+        const sql = referencedSql ?? '';
+        if (!sql.trim()) {
+            onCompiled?.('');
+            return;
+        }
+        // Strip config { ... } blocks before normalization/formatting
+        const withoutConfig = stripConfigBlocks(sql);
+        const normalized = normalizeSql(withoutConfig);
+        const compiled = replaceRefObjectPatterns(normalized, defaultProject);
+
+        let formatted = compiled;
         try {
-            formatted = format(normalizedCompile, {
+            formatted = format(compiled, {
                 language: 'sql',
                 uppercase: true,
                 indent: '  ',
@@ -93,20 +117,55 @@ function Transform({ inputSql = '', onTransformed }) {
             });
         } catch (e) {
             console.error('SQL format error:', e);
-        };
-        onTransformed?.(formatted);
-  }
+        }
+        onCompiled?.(formatted);
+    };
 
-  return (
-    <div>
-        <div className="transform">
-        <button className="transform-btn" onClick={transformSql}>Transform</button>
-        </div>
+    function revertSql() {
+        const sql = compiledSql ?? '';
+        if (!sql.trim()) {
+            onReverted?.('');
+            return;
+        }
+        const normalized = normalizeSql(sql);
+
+        let formatted = normalized;
+        try {
+            formatted = format(normalized, {
+                language: 'sql',
+                uppercase: true,
+                indent: '  ',
+                linesBetweenQueries: 1
+            });
+        } catch (e) {
+            console.error('SQL format error:', e);
+        }
+        const revertedFormatted = revertRefObjectPatterns(formatted, defaultProject); 
+        onReverted?.(revertedFormatted);
+    }
+
+    return (
         <div>
-
+            <div className="transform">
+                {/* Default project input */}
+                <div className="default-project-input-group">
+                    <label htmlFor="default-project" style={{ marginBottom: 4 }}>Default project</label>
+                    <input
+                        id="default-project"
+                        type="text"
+                        value={defaultProject}
+                        onChange={(e) => setDefaultProject(e.target.value)}
+                        placeholder="defaultproject"
+                        style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #ccc' }}
+                    />
+                </div>
+                {/* Action buttons */}
+                <button className="compile-btn" onClick={compileSql}>Compile</button>
+                <button className="revert-btn" onClick={revertSql}>Revert</button>
+            </div>
+            <div></div>
         </div>
-    </div>
-  );
+    );
 }
 
 export default Transform;

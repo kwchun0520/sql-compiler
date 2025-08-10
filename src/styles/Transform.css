@@ -1,11 +1,40 @@
 .transform {
   display: flex;
-  justify-content: center;   /* horizontal center */
-  align-items: center;       /* vertical center */
-  min-height: 60vh;          /* match the textarea height */
+  flex-direction: column; /* stack buttons vertically */
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  min-height: 60vh;
 }
 
-.transform-btn {
+/* In case any global styles make buttons full-width */
+.compile-btn,
+.revert-btn {
+  display: inline-flex;
+  width: auto;
+}
+
+.revert-btn {
+  background-color: #2865a7;
+  color: #fff;
+  border: 1px solid #2865a7;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  align-items: center;
+}
+
+.revert-btn:hover {
+  background-color: #1c4571;
+  border-color: #1c4571;
+}
+
+.revert-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(40, 106, 167, 0.35);
+}
+
+.compile-btn {
   background-color: #28a745;
   color: #fff;
   border: 1px solid #28a745;
@@ -15,12 +44,12 @@
   align-items: center;
 }
 
-.transform-btn:hover {
+.compile-btn:hover {
   background-color: #218838;
   border-color: #1e7e34;
 }
 
-.transform-btn:focus {
+.compile-btn:focus {
   outline: none;
   box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.35);
 }

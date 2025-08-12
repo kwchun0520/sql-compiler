@@ -71,14 +71,14 @@ function Transform({ referencedSql = '', compiledSql = '', onCompiled, onReverte
 
             if (!sch || !nm) return full;
             const project = db && db.length ? db : defaultProject;
-            return `${project}.${sch}.${nm}`;
+            return `\`${project}.${sch}.${nm}\``;
         });
     };
 
     // project.schema.name -> ${ref({...})}
     function revertRefObjectPatterns(input, defaultProject = 'defaultproject') {
         const dotPattern = /\b([A-Za-z_][\w.-]*)\.([A-Za-z_][\w.-]*)\.([A-Za-z_][\w.-]*)\b/g;
-
+        input = input.replace(/\`/g, '').trim();
         return input.replace(dotPattern, (full, project, schema, name) => {
             if (project === defaultProject) {
                 return `\${ref({schema:"${schema}", name:"${name}"})}`;

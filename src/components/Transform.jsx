@@ -7,14 +7,23 @@ function Transform({ referencedSql = '', compiledSql = '', onCompiled, onReverte
     const [defaultProject, setDefaultProject] = useState('defaultproject');
 
     function normalizeSql(s) {
-        let r = s
+        let r = s.replace(/(^|\n)\s*--(.*)$/gm, (match, p1, comment) => {
+            return `${p1}/*${comment} */
+            `;
+        });
+
+        // r = r.replace(/(^|\n)\s*-{2,}\s*$/gm, (match, p1, dashes) => {
+        //     return `${p1}/* ${dashes} */
+        //     `;
+        // });
+
+        r = r
             .replace(/\s+/g, ' ')
             .replace(/\s*,\s*/g, ', ')
             .replace(/\s*\(\s*/g, '(')
             .replace(/\s*\)\s*/g, ')')
             .replace(/\s*;\s*$/, ';')
             .replace(/\s*:\s*/g, ': ')
-            .trim();
 
         const boundaryReplace = (str, token, replacement) => {
             const tokenPattern = token.replace(/\s+/g, '\\s+');
@@ -63,7 +72,7 @@ function Transform({ referencedSql = '', compiledSql = '', onCompiled, onReverte
             let db, sch, nm, m;
             while ((m = kvRe.exec(objBody)) !== null) {
                 const key = m[1].toLowerCase();
-                const val = (m[2] ?? m[3] ?? m[4] ?? m[5] ?? '').trim();
+                const val = (m[2] ?? m[3] ?? m[4] ?? m[5] ?? '');
                 if (key === 'database') db = val;
                 else if (key === 'schema') sch = val;
                 else if (key === 'name') nm = val;
@@ -78,7 +87,7 @@ function Transform({ referencedSql = '', compiledSql = '', onCompiled, onReverte
     // project.schema.name -> ${ref({...})}
     function revertRefObjectPatterns(input, defaultProject = 'defaultproject') {
         const dotPattern = /\b([A-Za-z_][\w.-]*)\.([A-Za-z_][\w.-]*)\.([A-Za-z_][\w.-]*)\b/g;
-        input = input.replace(/\`/g, '').trim();
+        input = input.replace(/\`/g, '');
         return input.replace(dotPattern, (full, project, schema, name) => {
             if (project === defaultProject) {
                 return `\${ref({schema:"${schema}", name:"${name}"})}`;
@@ -93,12 +102,12 @@ function Transform({ referencedSql = '', compiledSql = '', onCompiled, onReverte
         // Prefer matches that start at line starts, then a broader fallback
         let out = input.replace(/(^|\n)\s*config\s*\{[\s\S]*?\}\s*(?=\n|$)/gi, '$1');
         out = out.replace(/\bconfig\s*\{[\s\S]*?\}\s*;?/gi, '');
-        return out.trim();
+        return out;
     }
 
     function compileSql() {
         const sql = referencedSql ?? '';
-        if (!sql.trim()) {
+        if (!sql) {
             onCompiled?.('');
             return;
         }
@@ -110,7 +119,7 @@ function Transform({ referencedSql = '', compiledSql = '', onCompiled, onReverte
         let formatted = compiled;
         try {
             formatted = format(compiled, {
-                language: 'sql',
+                language: 'bigquery',
                 uppercase: true,
                 indent: '  ',
                 linesBetweenQueries: 1
@@ -118,12 +127,15 @@ function Transform({ referencedSql = '', compiledSql = '', onCompiled, onReverte
         } catch (e) {
             console.error('SQL format error:', e);
         }
-        onCompiled?.(formatted);
+        const output = formatted.replace(/(^|\n)\s*-{2,}\s*$/gm, (match, p1) => {
+            return `${p1}*/\n/* ${match} */`;
+        });
+        onCompiled?.(output);
     };
 
     function revertSql() {
         const sql = compiledSql ?? '';
-        if (!sql.trim()) {
+        if (!sql) {
             onReverted?.('');
             return;
         }
@@ -132,7 +144,7 @@ function Transform({ referencedSql = '', compiledSql = '', onCompiled, onReverte
         let formatted = normalized;
         try {
             formatted = format(normalized, {
-                language: 'sql',
+                language: 'bigquery',
                 uppercase: true,
                 indent: '  ',
                 linesBetweenQueries: 1
@@ -141,7 +153,8 @@ function Transform({ referencedSql = '', compiledSql = '', onCompiled, onReverte
             console.error('SQL format error:', e);
         }
         const revertedFormatted = revertRefObjectPatterns(formatted, defaultProject); 
-        onReverted?.(revertedFormatted);
+        const output = revertedFormatted.replace(/\*\/\s*\/\*/g, '*/\n/*');
+        onReverted?.(output);
     }
 
     return (

@@ -14,8 +14,9 @@ function ReferenceSqlArea({ value, onChange }) {
                 value={value}
                 onChange={handleChange}
                 placeholder="SQL before compilation"
-                cols="80"
-                rows="40"
+                rows="50"
+                // cols="80"
+                // rows="40"
             />
         </div>
     );

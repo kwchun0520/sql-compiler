@@ -14,9 +14,15 @@
 
 .three-col-grid textarea {
   width: 100%;
-  height: 60vh;
+  height: 5vh;
   box-sizing: border-box;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Force specific heights for the main SQL areas */
+#referenced-sql,
+#compiled-sql {
+  height: 80vh;
 }
 
 .control-switch {

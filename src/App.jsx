@@ -7,6 +7,7 @@ import ControlSwitch from "./components/ControlSwitch";
 import ReferenceSqlArea from './components/ReferenceSqlArea';
 import CompileSqlArea from './components/CompileSqlArea';
 import Transform from "./components/Transform";
+import ReplaceArea from "./components/ReplaceArea";
 
 function App() {
   // const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -15,6 +16,11 @@ function App() {
   // Lifted state
   const [referencedSql, setReferencedSql] = useState('');
   const [compiledSql, setCompiledSql] = useState('');
+
+  // ReplaceArea state (lifted to App)
+  const [defaultProject, setDefaultProject] = useState('defaultproject');
+  const [revertMappingText, setRevertMappingText] = useState('');
+  const [revertMappingError, setRevertMappingError] = useState('');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
@@ -28,6 +34,18 @@ function App() {
       <div className="content">
         <Header />
         <ControlSwitch darkMode={darkMode} onToggle={() => setDarkMode(v => !v)} />
+
+        {/* ReplaceArea on top of the grid */}
+        <ReplaceArea
+          defaultProject={defaultProject}
+          onDefaultProjectChange={setDefaultProject}
+          revertMappingText={revertMappingText}
+          onRevertMappingTextChange={setRevertMappingText}
+          revertMappingError={revertMappingError}
+          showDefaultProject={true}
+          showRevertMapping={true}
+        />
+
         <div className="three-col-grid">
           <div>
             <ReferenceSqlArea value={referencedSql} onChange={setReferencedSql} />
@@ -39,6 +57,10 @@ function App() {
               compiledSql={compiledSql}
               onCompiled={setCompiledSql}
               onReverted={setReferencedSql}
+              // pass ReplaceArea state down
+              defaultProject={defaultProject}
+              revertMappingText={revertMappingText}
+              setRevertMappingError={setRevertMappingError}
             />
           </div>
           <div>

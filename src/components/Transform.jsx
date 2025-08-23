@@ -78,11 +78,12 @@ function Transform({
     // project.schema.name -> ${ref({...})}
     function revertRefObjectPatterns(input, defaultProject = 'defaultproject') {
         const dotPattern = /\b([A-Za-z_][\w.-]*)\.([A-Za-z_][\w.-]*)\.([A-Za-z_][\w.-]*)\b/g;
-        input = input.replace(/\`/g, '');
+        input = input.replace(/\`/g, '').replace(/ /g, '');
         return input.replace(dotPattern, (full, project, schema, name) => {
             if (project === defaultProject) {
                 return `\${ref({schema:"${schema}", name:"${name}"})}`;
             }
+            project = project.replace(/ /g, '');
             return `\${ref({database:"${project}", schema:"${schema}", name:"${name}"})}`;
         });
     };
@@ -144,7 +145,9 @@ function Transform({
         }
     }
     function applyObjectMapping(input, mapObj) {
+        console.log('Applying mapping:', mapObj);
         if (!mapObj) return input;
+        console.log('Input before mapping:', input);
         let out = input;
         for (const [k, v] of Object.entries(mapObj)) {
             const re = new RegExp(escapeRegExp(String(k)), 'g');
@@ -175,7 +178,7 @@ function Transform({
         // Apply JSON mapping (key -> value) before returning compiled SQL
         const mapping = parseMapping(revertMappingText);
         if (mapping) {
-            formatted = applyObjectMapping(formatted, mapping);
+            formatted = applyObjectMapping(input, mapping);
         }
 
         onCompiled?.(formatted);
@@ -198,9 +201,10 @@ function Transform({
         } catch (e) {
             console.error('SQL format error:', e);
         }
+        console.log('Reverting SQL:', formatted);
 
         // Revert project.schema.name -> ${ref({...})}
-        let reverted = revertRefObjectPatterns(formatted, defaultProject);
+        let reverted = revertRefObjectPatterns(formatted, defaultProject).trim();
 
         // Apply JSON mapping (key -> value) before returning reverted SQL
         const mapping = parseMapping(revertMappingText);
@@ -215,10 +219,10 @@ function Transform({
         <div className="transform">
             <div
                 className="actions"
-                style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}
+                style={{ marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
             >
-                <button className="compile-btn" onClick={compileSql}>Compile</button>
-                <button className="revert-btn" onClick={revertSql}>Revert</button>
+                <button className="compile-btn" onClick={compileSql}>{'>>>'}</button>
+                <button className="revert-btn" onClick={revertSql}>{'<<<'}</button>
             </div>
         </div>
     );

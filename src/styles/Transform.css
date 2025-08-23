@@ -3,7 +3,7 @@
   flex-direction: column; /* stack buttons vertically */
   justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: 5px;
   min-height: 60vh;
 }
 

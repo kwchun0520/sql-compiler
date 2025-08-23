@@ -15,7 +15,7 @@ function ReplaceArea({
   return (
       <div className="three-col-grid">
         <div>
-            <div>Default Project</div>
+            <h2>Default Project</h2>
             <textarea
               id="default-project"
               type="text"
@@ -25,9 +25,12 @@ function ReplaceArea({
               className="form-control"
             />
         </div>
-        <div></div>
         <div>
-            <div>Reverse Mapping</div>
+            <div></div>
+            <div></div>
+        </div>
+        <div>
+            <h2>Reverse Mapping</h2>
             <textarea
               id="revert-mapping"
               value={revertMappingText}

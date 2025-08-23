@@ -7,8 +7,8 @@
 
 .three-col-grid {
   display: grid;
-  grid-template-columns: 5fr 1fr 5fr;
-  gap: 16px; /* adjust spacing as needed */
+  grid-template-columns: 10fr 1fr 10fr;
+  gap: 5px; /* adjust spacing as needed */
   align-items: stretch;
 }
 
@@ -33,4 +33,19 @@
   align-items: center;
   gap: 8px;
   z-index: 1000;
+}
+
+h1{
+  margin: 0;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+footer {
+  margin-top: 0rem;
+  font-size: 0.8rem;
+  color: #666;
 }

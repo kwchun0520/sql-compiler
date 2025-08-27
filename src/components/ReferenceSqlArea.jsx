@@ -1,25 +1,18 @@
-import { useState } from 'react';
+import React from 'react';
 
 function ReferenceSqlArea({ value, onChange }) {
-    const handleChange = (event) => {
-        onChange?.(event.target.value);
-    };
-
-    return (
-        <div>
-            <h2>Before Compile</h2>
-            <textarea
-                id="referenced-sql"
-                name="content"
-                value={value}
-                onChange={handleChange}
-                placeholder="SQL before compilation"
-                rows="50"
-                // cols="80"
-                // rows="40"
-            />
-        </div>
-    );
-};
+  return (
+    <div>
+      <h2>Reference SQL</h2>
+      <textarea
+        id="referenced-sql"
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        placeholder="Enter your SQL here..."
+        className="form-control font-monospace"
+      />
+    </div>
+  );
+}
 
 export default ReferenceSqlArea;

@@ -1,18 +1,26 @@
-import '../styles/Transform.css';
 import { format } from 'sql-formatter';
-import { useState } from 'react';
-import ReplaceArea from './ReplaceArea';
+import { useImperativeHandle, forwardRef } from 'react';
 
-function Transform({
+const Transform = forwardRef(function Transform({
     referencedSql = '',
     compiledSql = '',
     onCompiled,
     onReverted,
-    // received from App (ReplaceArea)
     defaultProject = 'defaultproject',
-    revertMappingText = '',
-    setRevertMappingError,
-}) {
+    replaceMapping = '',
+    isReverseMode = false,
+}, ref) {
+    // Expose methods to parent component
+    useImperativeHandle(ref, () => ({
+        runTransform: () => {
+            if (isReverseMode) {
+                revertSql();
+            } else {
+                compileSql();
+            }
+        }
+    }));
+
     function normalizeSql(s) {
         let r = s;
 
@@ -48,12 +56,15 @@ function Transform({
         for (const t of KEYWORDS_MULTI) r = boundaryReplace(r, t, t);
         for (const t of KEYWORDS_SINGLE) r = boundaryReplace(r, t, t);
         for (const t of TYPES_MULTI) r = boundaryReplace(r, t, t);
-        for (const t of TYPES_SINGLE) r = boundaryReplace(r, t, t.toUpperCase());
+        for (const t of TYPES_SINGLE) r = boundaryReplace(r, t, t);
 
         return r;
-    };
+    }
 
-    // ${ref({ database: "...", schema: "...", name: "..." })} -> project.schema.name
+    function stripConfigBlocks(sql) {
+        return sql.replace(/^\s*config\s*\{[^}]*\}\s*/gmi, '');
+    }
+
     function replaceRefObjectPatterns(input, defaultProject = 'defaultproject') {
         const outer = /\$\{ref\(\s*\{\s*([^}]*)\}\s*\)\}/gi;
 
@@ -73,27 +84,20 @@ function Transform({
             const project = db && db.length ? db : defaultProject;
             return `\`${project}.${sch}.${nm}\``;
         });
-    };
+    }
 
-    // project.schema.name -> ${ref({...})}
     function revertRefObjectPatterns(input, defaultProject = 'defaultproject') {
-        const dotPattern = /\b([A-Za-z_][\w.-]*)\.([A-Za-z_][\w.-]*)\.([A-Za-z_][\w.-]*)\b/g;
-        input = input.replace(/\`/g, '').replace(/ /g, '');
-        return input.replace(dotPattern, (full, project, schema, name) => {
-            if (project === defaultProject) {
-                return `\${ref({schema:"${schema}", name:"${name}"})}`;
-            }
-            project = project.replace(/ /g, '');
-            return `\${ref({database:"${project}", schema:"${schema}", name:"${name}"})}`;
+        const tableRegex = /`([^`]+)\.([^`]+)\.([^`]+)`/g;
+        
+        return input.replace(tableRegex, (match, database, schema, name) => {
+            const db = database === defaultProject ? '' : database;
+            const parts = [];
+            if (db) parts.push(`database: "${db}"`);
+            parts.push(`schema: "${schema}"`);
+            parts.push(`name: "${name}"`);
+            
+            return `\${ref({ ${parts.join(', ')} })}`;
         });
-    };
-
-    // Remove Dataform-like config blocks: config { ... }
-    function stripConfigBlocks(input) {
-        if (!input) return input;
-        let out = input.replace(/(^|\n)\s*config\s*\{[\s\S]*?\}\s*(?=\n|$)/gi, '$1');
-        out = out.replace(/\bconfig\s*\{[\s\S]*?\}\s*;?/gi, '');
-        return out;
     }
 
     function formatSqlWithComments(sql, formatterFn) {
@@ -122,32 +126,25 @@ function Transform({
         return finalSql;
     }
 
-    // Helpers for mapping
     function escapeRegExp(str) {
         return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
+
     function parseMapping(text) {
-        if (!text || !text.trim()) {
-            setRevertMappingError?.('');
-            return null;
-        }
+        if (!text || !text.trim()) return null;
         try {
             const obj = JSON.parse(text);
             if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-                setRevertMappingError?.('');
                 return obj;
             }
-            setRevertMappingError?.('Mapping must be a JSON object of { "find": "replace", ... }');
             return null;
         } catch (e) {
-            setRevertMappingError?.('Invalid JSON');
             return null;
         }
     }
+
     function applyObjectMapping(input, mapObj) {
-        console.log('Applying mapping:', mapObj);
         if (!mapObj) return input;
-        console.log('Input before mapping:', input);
         let out = input;
         for (const [k, v] of Object.entries(mapObj)) {
             const re = new RegExp(escapeRegExp(String(k)), 'g');
@@ -162,6 +159,7 @@ function Transform({
             onCompiled?.('');
             return;
         }
+        
         const withoutConfig = stripConfigBlocks(sql);
         const normalized = normalizeSql(withoutConfig);
         const compiled = replaceRefObjectPatterns(normalized, defaultProject);
@@ -175,14 +173,13 @@ function Transform({
             console.error('SQL format error:', e);
         }
 
-        // Apply JSON mapping (key -> value) before returning compiled SQL
-        const mapping = parseMapping(revertMappingText);
+        const mapping = parseMapping(replaceMapping);
         if (mapping) {
-            formatted = applyObjectMapping(input, mapping);
+            formatted = applyObjectMapping(formatted, mapping);
         }
 
         onCompiled?.(formatted);
-    };
+    }
 
     function revertSql() {
         const sql = compiledSql ?? '';
@@ -190,9 +187,9 @@ function Transform({
             onReverted?.('');
             return;
         }
+        
         const normalized = normalizeSql(sql);
 
-        // Format (preserving comments)
         let formatted = normalized;
         try {
             formatted = formatSqlWithComments(formatted, (s) =>
@@ -201,13 +198,10 @@ function Transform({
         } catch (e) {
             console.error('SQL format error:', e);
         }
-        console.log('Reverting SQL:', formatted);
 
-        // Revert project.schema.name -> ${ref({...})}
         let reverted = revertRefObjectPatterns(formatted, defaultProject).trim();
 
-        // Apply JSON mapping (key -> value) before returning reverted SQL
-        const mapping = parseMapping(revertMappingText);
+        const mapping = parseMapping(replaceMapping);
         if (mapping) {
             reverted = applyObjectMapping(reverted, mapping);
         }
@@ -215,17 +209,8 @@ function Transform({
         onReverted?.(reverted);
     }
 
-    return (
-        <div className="transform">
-            <div
-                className="actions"
-                style={{ marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
-            >
-                <button className="compile-btn" onClick={compileSql}>{'>>>'}</button>
-                <button className="revert-btn" onClick={revertSql}>{'<<<'}</button>
-            </div>
-        </div>
-    );
-}
+    // This component now works behind the scenes
+    return null;
+});
 
 export default Transform;

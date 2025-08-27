@@ -1,55 +1,71 @@
+/* Transform.css */
 .transform {
   display: flex;
-  flex-direction: column; /* stack buttons vertically */
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  gap: 5px;
-  min-height: 60vh;
+  justify-content: center;
+  padding: 1rem;
 }
 
-/* In case any global styles make buttons full-width */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
 .compile-btn,
 .revert-btn {
-  display: inline-flex;
-  width: auto;
-}
-
-.revert-btn {
-  background-color: #2865a7;
-  color: #fff;
-  border: 1px solid #2865a7;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--input-border, #ddd);
+  background-color: var(--input-bg, #fff);
+  color: var(--text-color, #333);
   cursor: pointer;
-  align-items: center;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
 }
 
+.compile-btn:hover,
 .revert-btn:hover {
-  background-color: #1c4571;
-  border-color: #1c4571;
-}
-
-.revert-btn:focus {
-  outline: none;
-  box-shadow: 0 0 0 0.2rem rgba(40, 106, 167, 0.35);
+  background-color: var(--primary-color, #007bff);
+  color: white;
 }
 
 .compile-btn {
   background-color: #28a745;
-  color: #fff;
-  border: 1px solid #28a745;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  align-items: center;
+  color: white;
+}
+
+.revert-btn {
+  background-color: #dc3545;
+  color: white;
 }
 
 .compile-btn:hover {
   background-color: #218838;
-  border-color: #1e7e34;
 }
 
-.compile-btn:focus {
-  outline: none;
-  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.35);
+.revert-btn:hover {
+  background-color: #c82333;
+}
+
+.transform-info {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--text-color, #666);
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+  
+  .compile-btn,
+  .revert-btn {
+    flex: 1;
+    max-width: 120px;
+  }
 }

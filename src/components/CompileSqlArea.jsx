@@ -1,25 +1,19 @@
-import { useState } from 'react';
+import React from 'react';
 
 function CompileSqlArea({ value, onChange }) {
-    const handleChange = (event) => {
-        onChange?.(event.target.value);
-    };
-
-    return (
-        <div>
-            <h2>After Compile</h2>
-            <textarea
-                id="compiled-sql"
-                name="content"
-                value={value}
-                onChange={handleChange}
-                placeholder="SQL after compilation"
-                rows="50"
-                // cols="80"
-                // rows="40"
-            />
-        </div>
-    );
-};
+  return (
+    <div>
+      <h2>Compiled SQL</h2>
+      <textarea
+        id="compiled-sql"
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        placeholder="Compiled SQL will appear here..."
+        className="form-control font-monospace"
+        readOnly
+      />
+    </div>
+  );
+}
 
 export default CompileSqlArea;

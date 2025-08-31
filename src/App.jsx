@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Transform from "./components/Transform";
+import ReplaceArea from "./components/ReplaceArea";
 
 function App() {
   // Mode toggle: false = Referenced to Compiled, true = Compiled to Referenced
@@ -38,19 +39,10 @@ function App() {
       <main className="flex-1 flex flex-col py-8 px-4 sm:px-6 lg:px-8">
         <div className="w-full flex-1 flex flex-col gap-8">
           {/* Text Replacement Area */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-[var(--text-secondary)]" htmlFor="replace-input">
-              Text Replacement (JSON)
-            </label>
-            <textarea 
-              className="form-textarea w-full rounded-md bg-[var(--surface-color)] border border-[var(--border-color)] text-[var(--text-primary)] focus:ring-1 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] px-3 py-2 text-sm font-mono placeholder:text-[var(--text-secondary)] resize-y"
-              id="replace-input"
-              value={replaceMapping}
-              onChange={(e) => setReplaceMapping(e.target.value)}
-              placeholder={`{\n  "find_this_text": "replace_with_this",\n  "another_find": "another_replace"\n}`}
-              rows="4"
-            />
-          </div>
+          <ReplaceArea 
+            value={replaceMapping}
+            onChange={setReplaceMapping}
+          />
           
           {/* Main Content Areas */}
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[500px]">

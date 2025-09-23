@@ -211,7 +211,9 @@ The container includes:
 - Vite HMR provides instant feedback during development
 
 ## 📝 License
-This project is open source and available under standard licensing terms.
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 
 ## Usage
 - Left panel: paste or type your SQL (ReferenceSqlArea)

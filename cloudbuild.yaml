@@ -1,0 +1,24 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', 
+      '-t', '${_IMAGE_BASE}/${_APP_NAME}:${_TAG}', 
+      '-t', '${_IMAGE_BASE}/${_APP_NAME}:latest',
+      '.'
+    ]
+
+  # Push the container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_IMAGE_BASE}/${_APP_NAME}:${_TAG}']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_IMAGE_BASE}/${_APP_NAME}:latest']
+
+images:
+  - '${_IMAGE_BASE}/${_APP_NAME}:${_TAG}'
+  - '${_IMAGE_BASE}/${_APP_NAME}:latest'
+
+substitutions:
+  _APP_NAME: sql-compiler
+  _TAG: latest
+  _IMAGE_BASE: us-central1-docker.pkg.dev/$PROJECT_ID/app-images

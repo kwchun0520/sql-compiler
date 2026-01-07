@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  sql-compiler:
+    build:
+      context: .
+    image: ${IMAGE_PATH:-sql-compiler}:latest
+    ports:
+      - "5173:8080"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    restart: always

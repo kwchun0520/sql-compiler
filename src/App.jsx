@@ -43,7 +43,7 @@ function App() {
           />
           
           {/* Main Content Areas */}
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[500px]">
+          <div className="flex-1 grid grid-cols-2 gap-8 min-h-[500px]">
             <div className="flex flex-col gap-2">
               <div className="flex justify-between items-center">
                 <label className="text-sm font-medium text-[var(--text-secondary)]" htmlFor="input-code">

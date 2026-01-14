@@ -105,11 +105,11 @@ if [[ "$DEPLOY" =~ ^[Yy]$ ]] || [[ "$DEPLOY" == "deploy" ]]; then
     REGION=${REGION:-$DEFAULT_REGION}
     
     echo -e "\n${GREEN}Deploying to Cloud Run in $REGION...${NC}"
-    gcloud run deploy $APP_NAME \
+    gcloud beta run deploy $APP_NAME \
         --image $IMAGE_PATH:latest \
         --platform managed \
         --region $REGION \
-        --allow-unauthenticated
+        --no-allow-unauthenticated \
     
     echo -e "\n${GREEN}Deployment complete!${NC}"
     gcloud run services describe $APP_NAME --region $REGION --format='value(status.url)'

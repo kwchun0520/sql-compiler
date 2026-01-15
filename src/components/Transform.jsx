@@ -40,7 +40,6 @@ function replaceSelfReferences(input, project, metadata = {}) {
 const Transform = forwardRef(function Transform(
     {
         inputSql = '',
-        outputSql = '',
         defaultProject = 'defaultproject',
         replaceMapping = '',
         isReverseMode = false,
@@ -100,13 +99,38 @@ const Transform = forwardRef(function Transform(
     }
 
     function stripConfigBlocks(sql) {
-        return sql.replace(/^\s*config\s*\{[^}]*\}\s*/gmi, '');
+        // More robust stripping that handles nested braces
+        let result = sql;
+        const configRegex = /^\s*config\s*\{/gmi;
+        let match;
+        while ((match = configRegex.exec(result)) !== null) {
+            const start = match.index;
+            let braceCount = 1;
+            let end = -1;
+            for (let i = start + match[0].length; i < result.length; i++) {
+                if (result[i] === '{') braceCount++;
+                else if (result[i] === '}') braceCount--;
+                if (braceCount === 0) {
+                    end = i;
+                    break;
+                }
+            }
+            if (end !== -1) {
+                result = result.substring(0, start) + result.substring(end + 1);
+                configRegex.lastIndex = 0; // Reset as string changed
+            } else {
+                break; // Unclosed brace, stop trying to avoid infinite loop
+            }
+        }
+        return result;
     }
 
     function replaceRefObjectPatterns(input, defaultProject = 'defaultproject') {
+        let r = input;
+        
+        // 1. Handle object pattern: ${ref({ schema: "s", name: "n" })}
         const outer = /\$\{ref\(\s*\{\s*([^}]*)\}\s*\)\}/gi;
-
-        return input.replace(outer, (full, objBody) => {
+        r = r.replace(outer, (full, objBody) => {
             const kvRe = /\b(database|schema|name)\b\s*:\s*(?:"([^"]+)"|'([^']+)'|`([^`]+)`|([A-Za-z_][\w$.-]*))/gi;
 
             let db, sch, nm, m;
@@ -118,29 +142,69 @@ const Transform = forwardRef(function Transform(
                 else if (key === 'name') nm = val;
             }
 
-            if (!sch || !nm) return full;
+            if (!nm) return full;
             const project = db && db.length ? db : defaultProject;
-            return `\`${project}.${sch}.${nm}\``;
+            if (sch) return `\`${project}.${sch}.${nm}\``;
+            return `\`${project}.${nm}\``; // fallback for 2-part if schema missing
         });
+
+        // 2. Handle positional patterns: ${ref("dataset", "table")} or ${ref("table")}
+        // Matches 1, 2 or 3 string arguments
+        const posRef = /\$\{ref\(\s*([^)]+)\)\}/gi;
+        r = r.replace(posRef, (full, args) => {
+            if (args.trim().startsWith('{')) return full; // Skip object pattern already handled
+            
+            const argArray = args.split(',').map(arg => {
+                const match = arg.trim().match(/^(?:"([^"]+)"|'([^']+)'|`([^`]+)`|([A-Za-z_][\w$.-]*))$/);
+                return match ? (match[1] ?? match[2] ?? match[3] ?? match[4]) : null;
+            }).filter(a => a !== null);
+
+            if (argArray.length === 1) {
+                // ${ref("table")} -> `defaultProject.table` (Dataform usually uses schema-less refs for same-dataset)
+                // But in BigQuery compilation we usually need at least dataset.
+                return `\`${defaultProject}.${argArray[0]}\``;
+            } else if (argArray.length === 2) {
+                // ${ref("dataset", "table")} -> `defaultProject.dataset.table`
+                return `\`${defaultProject}.${argArray[0]}.${argArray[1]}\``;
+            } else if (argArray.length === 3) {
+                // ${ref("project", "dataset", "table")}
+                return `\`${argArray[0]}.${argArray[1]}.${argArray[2]}\``;
+            }
+            return full;
+        });
+
+        return r;
     }
 
     function revertRefObjectPatterns(input, defaultProject = 'defaultproject', metadata = {}) {
-        const tableRegex = /`([^`]+)\.([^`]+)\.([^`]+)`/g;
+        // Matches `project.dataset.table` or `dataset.table`
+        const tableRegex = /`([^`]+)`/g;
         const selfDataset = metadata.dataset?.trim();
         const selfOutput = metadata.output?.trim();
         
-        return input.replace(tableRegex, (match, database, schema, name) => {
+        return input.replace(tableRegex, (match, fullName) => {
+            const parts = fullName.split('.');
+            if (parts.length < 2 || parts.length > 3) return match;
+
+            const database = parts.length === 3 ? parts[0] : defaultProject;
+            const schema = parts.length === 3 ? parts[1] : parts[0];
+            const name = parts[parts.length - 1];
+
             if (selfDataset && selfOutput && schema === selfDataset && name === selfOutput) {
                 return '${self()}';
             }
 
+            if (parts.length === 2 && schema === 'dataset' && name === 'table') {
+                // Avoid reverting generic names if not intended? But usually safe.
+            }
+
             const db = database === defaultProject ? '' : database;
-            const parts = [];
-            if (db) parts.push(`database: "${db}"`);
-            parts.push(`schema: "${schema}"`);
-            parts.push(`name: "${name}"`);
+            const p = [];
+            if (db) p.push(`database: "${db}"`);
+            p.push(`schema: "${schema}"`);
+            p.push(`name: "${name}"`);
             
-            return `\${ref({ ${parts.join(', ')} })}`;
+            return `\${ref({ ${p.join(', ')} })}`;
         });
     }
 
@@ -162,7 +226,7 @@ const Transform = forwardRef(function Transform(
 
         let finalSql = formattedSqlWithoutComments;
         comments.forEach((comment) => {
-            const escapedPlaceholder = comment.placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const escapedPlaceholder = comment.placeholder.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
             const placeholderRegex = new RegExp(escapedPlaceholder, 'g');
             finalSql = finalSql.replace(placeholderRegex, comment.content);
         });
@@ -182,7 +246,7 @@ const Transform = forwardRef(function Transform(
                 return obj;
             }
             return null;
-        } catch (e) {
+        } catch {
             return null;
         }
     }

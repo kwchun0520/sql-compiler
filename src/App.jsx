@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Transform from "./components/Transform";
-import ReplaceArea from "./components/ReplaceArea";
+import './styles/App.css';
 
 function App() {
   // Mode toggle: false = Referenced to Compiled, true = Compiled to Referenced
@@ -10,7 +10,6 @@ function App() {
   
   // Settings
   const [defaultProject, setDefaultProject] = useState('');
-  const [replaceMapping, setReplaceMapping] = useState('');
   const [inputSql, setInputSql] = useState('');
   const [outputSql, setOutputSql] = useState('');
 
@@ -25,7 +24,7 @@ function App() {
   };
 
   return (
-    <div className="bg-[var(--background-color)] text-[var(--text-primary)] min-h-screen flex flex-col">
+    <div className="app-container">
       <Header 
         defaultProject={defaultProject}
         onDefaultProjectChange={setDefaultProject}
@@ -34,25 +33,20 @@ function App() {
         onRun={handleRun}
       />
       
-      <main className="flex-1 flex flex-col py-8 px-4 sm:px-6 lg:px-8">
-        <div className="w-full flex-1 flex flex-col gap-8">
-          {/* Text Replacement Area */}
-          <ReplaceArea 
-            value={replaceMapping}
-            onChange={setReplaceMapping}
-          />
+      <main className="app-main">
+        <div className="content-wrapper">
           
           {/* Main Content Areas */}
-          <div className="flex-1 grid grid-cols-2 gap-8 min-h-[500px]">
-            <div className="flex flex-col gap-2">
+          <div className="sql-grid">
+            <div className="sql-editor-container">
               <div className="flex justify-between items-center">
-                <label className="text-sm font-medium text-[var(--text-secondary)]" htmlFor="input-code">
+                <label className="editor-label" htmlFor="input-code">
                   Input
                 </label>
               </div>
               <div className="relative flex-1">
                 <textarea 
-                  className="form-textarea w-full h-full min-h-[400px] rounded-md bg-[var(--surface-color)] border border-[var(--border-color)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] p-4 text-sm font-mono placeholder:text-[var(--text-secondary)] resize-none"
+                  className="sql-textarea"
                   id="input-code"
                   value={inputSql}
                   onChange={(e) => setInputSql(e.target.value)}
@@ -61,15 +55,15 @@ function App() {
               </div>
             </div>
             
-            <div className="flex flex-col gap-2">
+            <div className="sql-editor-container">
               <div className="flex justify-between items-center">
-                <label className="text-sm font-medium text-[var(--text-secondary)]" htmlFor="output-json">
+                <label className="editor-label" htmlFor="output-json">
                   Output
                 </label>
               </div>
               <div className="relative flex-1">
                 <textarea 
-                  className="form-textarea w-full h-full min-h-[400px] rounded-md bg-[var(--surface-color)] border border-[var(--border-color)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] p-4 text-sm font-mono placeholder:text-[var(--text-secondary)] resize-none"
+                  className="sql-textarea"
                   id="output-json"
                   value={outputSql}
                   onChange={(e) => setOutputSql(e.target.value)}
@@ -84,9 +78,7 @@ function App() {
       <Transform
         ref={transformRef}
         inputSql={inputSql}
-        outputSql={outputSql}
         defaultProject={defaultProject}
-        replaceMapping={replaceMapping}
         isReverseMode={isReverseMode}
         onCompiled={setOutputSql}
         onReverted={setOutputSql}
